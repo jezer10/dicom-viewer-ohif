@@ -16,13 +16,14 @@ import { retrieveStudyMetadata, deleteStudyMetadataPromise } from './retrieveStu
 import StaticWadoClient from './utils/StaticWadoClient';
 import getDirectURL from '../utils/getDirectURL';
 import { fixBulkDataURI } from './utils/fixBulkDataURI';
+import {HeadersInterface} from '@ohif/core/src/types/RequestHeaders';
 
 const { DicomMetaDictionary, DicomDict } = dcmjs.data;
 
 const { naturalizeDataset, denaturalizeDataset } = DicomMetaDictionary;
 
 const ImplementationClassUID = '2.25.270695996825855179949881587723571202391.2.0.0';
-const ImplementationVersionName = 'OHIF-VIEWER-2.0.0';
+const ImplementationVersionName = 'OHIF-3.11.0';
 const EXPLICIT_VR_LITTLE_ENDIAN = '1.2.840.10008.1.2.1';
 
 const metadataProvider = classes.MetadataProvider;
@@ -37,11 +38,17 @@ export type DicomWebConfig = {
   wadoUri?: string; // - Base URL to use for WADO URI requests
   qidoSupportsIncludeField?: boolean; // - Whether QIDO supports the "Include" option to request additional fields in response
   imageRendering?: string; // - wadors | ? (unsure of where/how this is used)
-  thumbnailRendering?: string; // - wadors | ? (unsure of where/how this is used)
+  thumbnailRendering?: string;
+  /**
+   wadors - render using the wadors fetch.  The full image is retrieved and rendered in cornerstone to thumbnail size  png and returned as binary data to the src attribute of the  image tag.
+           for example,  <img  src=data:image/png;base64,sdlfk;adkfadfk....asldfjkl;asdkf>
+   thumbnailDirect -  get the direct url endpoint for the thumbnail as the image src (eg not authentication required).
+           for example, <img src=http://server:port/wadors/studies/1.2.3/thumbnail?accept=image/jpeg>
+   thumbnail - render using the thumbnail endpoint on wadors using bulkDataURI, passing authentication params  to the url.
+    rendered - should use the rendered endpoint instead of the thumbnail endpoint
+*/
   /** Whether the server supports reject calls (i.e. DCM4CHEE) */
   supportsReject?: boolean;
-  /** Request series meta async instead of blocking */
-  lazyLoadStudy?: boolean;
   /** indicates if the retrieves can fetch singlepart. Options are bulkdata, video, image, or  true */
   singlepart?: boolean | string;
   /** Transfer syntax to request from the server */
@@ -92,6 +99,20 @@ export type BulkDataURIConfig = {
 };
 
 /**
+ * The header options are the options passed into the generateWadoHeader
+ * command.  This takes an extensible set of attributes to allow future enhancements.
+ */
+export interface HeaderOptions {
+  includeTransferSyntax?: boolean;
+}
+
+/**
+ * Metadata and some other requests don't permit the transfer syntax to be included,
+ * so pass in the excludeTransferSyntax parameter.
+ */
+export const excludeTransferSyntax: HeaderOptions = { includeTransferSyntax: false };
+
+/**
  * Creates a DICOM Web API based on the provided configuration.
  *
  * @param dicomWebConfig - Configuration for the DICOM Web API
@@ -122,7 +143,7 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
       dicomWebConfigCopy = JSON.parse(JSON.stringify(dicomWebConfig));
 
       getAuthorizationHeader = () => {
-        const xhrRequestHeaders = {};
+        const xhrRequestHeaders: HeadersInterface = {};
         const authHeaders = userAuthenticationService.getAuthorizationHeader();
         if (authHeaders && authHeaders.Authorization) {
           xhrRequestHeaders.Authorization = authHeaders.Authorization;
@@ -130,19 +151,33 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
         return xhrRequestHeaders;
       };
 
-      generateWadoHeader = () => {
+      /**
+       * Generates the wado header for requesting resources from DICOMweb.
+       * These are classified into those that are dependent on the transfer syntax
+       * and those that aren't, as defined by the include transfer syntax attribute.
+       */
+      generateWadoHeader = (options: HeaderOptions): HeadersInterface => {
         const authorizationHeader = getAuthorizationHeader();
-        //Generate accept header depending on config params
-        const formattedAcceptHeader = utils.generateAcceptHeader(
-          dicomWebConfig.acceptHeader,
-          dicomWebConfig.requestTransferSyntaxUID,
-          dicomWebConfig.omitQuotationForMultipartRequest
-        );
-
-        return {
-          ...authorizationHeader,
-          Accept: formattedAcceptHeader,
-        };
+        if (options?.includeTransferSyntax!==false) {
+          //Generate accept header depending on config params
+          const formattedAcceptHeader = utils.generateAcceptHeader(
+            dicomWebConfig.acceptHeader,
+            dicomWebConfig.requestTransferSyntaxUID,
+            dicomWebConfig.omitQuotationForMultipartRequest
+          );
+          return {
+            ...authorizationHeader,
+            Accept: formattedAcceptHeader,
+          };
+        } else {
+          // The base header will be included in the request. We simply skip customization options around
+          // transfer syntaxes and whether the request is multipart. In other words, a request in
+          // which the server expects Accept: application/dicom+json will still include that in the
+          // header.
+          return {
+            ...authorizationHeader
+          };
+        }
       };
 
       qidoConfig = {
@@ -225,6 +260,71 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
        * @returns an absolute URL to the resource, if the absolute URL can be retrieved as singlepart,
        *    or is already retrieved, or a promise to a URL for such use if a BulkDataURI
        */
+
+      getGetThumbnailSrc: function (instance, imageId) {
+        if (dicomWebConfig.thumbnailRendering === 'wadors') {
+          return function getThumbnailSrc(options) {
+            if (!imageId) {
+              return null;
+            }
+            if (!options?.getImageSrc) {
+              return null;
+            }
+            return options.getImageSrc(imageId);
+          };
+        }
+        if (dicomWebConfig.thumbnailRendering === 'thumbnailDirect') {
+          return function getThumbnailSrc() {
+            return this.directURL({
+              instance: instance,
+              defaultPath: '/thumbnail',
+              defaultType: 'image/jpeg',
+              singlepart: true,
+              tag: 'Absent',
+            });
+          }.bind(this);
+        }
+
+        if (dicomWebConfig.thumbnailRendering === 'thumbnail') {
+          return async function getThumbnailSrc() {
+            const { StudyInstanceUID, SeriesInstanceUID, SOPInstanceUID } = instance;
+            const bulkDataURI = `${dicomWebConfig.wadoRoot}/studies/${StudyInstanceUID}/series/${SeriesInstanceUID}/instances/${SOPInstanceUID}/thumbnail?accept=image/jpeg`;
+            return URL.createObjectURL(
+              new Blob(
+                [
+                  await this.bulkDataURI({
+                    BulkDataURI: bulkDataURI.replace('wadors:', ''),
+                    defaultType: 'image/jpeg',
+                    mediaTypes: ['image/jpeg'],
+                    thumbnail: true,
+                  }),
+                ],
+                { type: 'image/jpeg' }
+              )
+            );
+          }.bind(this);
+        }
+        if (dicomWebConfig.thumbnailRendering === 'rendered') {
+          return async function getThumbnailSrc() {
+            const { StudyInstanceUID, SeriesInstanceUID, SOPInstanceUID } = instance;
+            const bulkDataURI = `${dicomWebConfig.wadoRoot}/studies/${StudyInstanceUID}/series/${SeriesInstanceUID}/instances/${SOPInstanceUID}/rendered?accept=image/jpeg`;
+            return URL.createObjectURL(
+              new Blob(
+                [
+                  await this.bulkDataURI({
+                    BulkDataURI: bulkDataURI.replace('wadors:', ''),
+                    defaultType: 'image/jpeg',
+                    mediaTypes: ['image/jpeg'],
+                    thumbnail: true,
+                  }),
+                ],
+                { type: 'image/jpeg' }
+              )
+            );
+          }.bind(this);
+        }
+      },
+
       directURL: params => {
         return getDirectURL(
           {
@@ -339,7 +439,7 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
       madeInClient
     ) => {
       const enableStudyLazyLoad = false;
-      wadoDicomWebClient.headers = generateWadoHeader();
+      wadoDicomWebClient.headers = generateWadoHeader(excludeTransferSyntax);
       // data is all SOPInstanceUIDs
       const data = await retrieveStudyMetadata(
         wadoDicomWebClient,
@@ -413,7 +513,7 @@ function createDicomWebApi(dicomWebConfig: DicomWebConfig, servicesManager) {
       returnPromises = false
     ) => {
       const enableStudyLazyLoad = true;
-      wadoDicomWebClient.headers = generateWadoHeader();
+      wadoDicomWebClient.headers = generateWadoHeader(excludeTransferSyntax);
       // Get Series
       const { preLoadData: seriesSummaryMetadata, promises: seriesPromises } =
         await retrieveStudyMetadata(

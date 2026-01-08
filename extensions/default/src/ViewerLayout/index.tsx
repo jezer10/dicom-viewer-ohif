@@ -25,6 +25,10 @@ function ViewerLayout({
   rightPanelClosed = false,
   leftPanelResizable = false,
   rightPanelResizable = false,
+  leftPanelInitialExpandedWidth,
+  rightPanelInitialExpandedWidth,
+  leftPanelMinimumExpandedWidth,
+  rightPanelMinimumExpandedWidth,
 }: withAppTypes): React.FunctionComponent {
   const [appConfig] = useAppConfig();
 
@@ -55,7 +59,11 @@ function ViewerLayout({
     rightPanelClosed,
     setRightPanelClosed,
     hasLeftPanels,
-    hasRightPanels
+    hasRightPanels,
+    leftPanelInitialExpandedWidth,
+    rightPanelInitialExpandedWidth,
+    leftPanelMinimumExpandedWidth,
+    rightPanelMinimumExpandedWidth
   );
   console.log(leftPanelProps)
 

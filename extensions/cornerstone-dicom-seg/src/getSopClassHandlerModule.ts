@@ -1,12 +1,13 @@
-import { utils } from '@ohif/core';
-import { metaData, triggerEvent, eventTarget } from '@cornerstonejs/core';
+import { utils, Types as OhifTypes } from '@ohif/core';
+import i18n from '@ohif/i18n';
+import { metaData, eventTarget } from '@cornerstonejs/core';
 import { CONSTANTS, segmentation as cstSegmentation } from '@cornerstonejs/tools';
 import { adaptersSEG, Enums } from '@cornerstonejs/adapters';
 
 import { SOPClassHandlerId } from './id';
 import { dicomlabToRGB } from './utils/dicomlabToRGB';
 
-const sopClassUids = ['1.2.840.10008.5.1.4.1.1.66.4'];
+const sopClassUids = ['1.2.840.10008.5.1.4.1.1.66.4', '1.2.840.10008.5.1.4.1.1.66.7'];
 
 const loadPromises = {};
 
@@ -15,29 +16,34 @@ function _getDisplaySetsFromSeries(
   servicesManager: AppTypes.ServicesManager,
   extensionManager
 ) {
-  const instance = instances[0];
+  utils.sortStudyInstances(instances);
+
+  // Choose the LAST instance in the list as the most recently created one.
+  const instance = instances[instances.length - 1];
 
   const {
     StudyInstanceUID,
     SeriesInstanceUID,
     SOPInstanceUID,
-    SeriesDescription,
+    SeriesDescription = '',
     SeriesNumber,
     SeriesDate,
+    StructureSetDate,
     SOPClassUID,
     wadoRoot,
     wadoUri,
     wadoUriRoot,
+    imageId: predecessorImageId,
   } = instance;
 
   const displaySet = {
     Modality: 'SEG',
     loading: false,
-    isReconstructable: true, // by default for now since it is a volumetric SEG currently
+    isReconstructable: false,
     displaySetInstanceUID: utils.guid(),
     SeriesDescription,
     SeriesNumber,
-    SeriesDate,
+    SeriesDate: SeriesDate || StructureSetDate || '',
     SOPInstanceUID,
     SeriesInstanceUID,
     StudyInstanceUID,
@@ -52,11 +58,13 @@ function _getDisplaySetsFromSeries(
     segments: {},
     sopClassUids,
     instance,
+    predecessorImageId,
     instances: [instance],
     wadoRoot,
     wadoUriRoot,
     wadoUri,
     isOverlayDisplaySet: true,
+    label: SeriesDescription || `${i18n.t('Series')} ${SeriesNumber} - ${i18n.t('SEG')}`,
   };
 
   const referencedSeriesSequence = instance.ReferencedSeriesSequence;
@@ -71,9 +79,15 @@ function _getDisplaySetsFromSeries(
   displaySet.referencedImages = instance.ReferencedSeriesSequence.ReferencedInstanceSequence;
   displaySet.referencedSeriesInstanceUID = referencedSeries.SeriesInstanceUID;
   const { displaySetService } = servicesManager.services;
-  const referencedDisplaySets = displaySetService.getDisplaySetsForSeries(
-    displaySet.referencedSeriesInstanceUID
+  const referencedDisplaySets = displaySetService.getDisplaySetsForReferences(
+    instance.ReferencedSeriesSequence
   );
+
+  if (referencedDisplaySets?.length > 1) {
+    console.warn(
+      'Segmentation does not currently handle references to multiple series, defaulting to first series'
+    );
+  }
 
   const referencedDisplaySet = referencedDisplaySets[0];
 
@@ -89,12 +103,14 @@ function _getDisplaySetsFromSeries(
         const addedDisplaySet = displaySetsAdded[0];
         if (addedDisplaySet.SeriesInstanceUID === displaySet.referencedSeriesInstanceUID) {
           displaySet.referencedDisplaySetInstanceUID = addedDisplaySet.displaySetInstanceUID;
+          displaySet.isReconstructable = addedDisplaySet.isReconstructable;
           unsubscribe();
         }
       }
     );
   } else {
     displaySet.referencedDisplaySetInstanceUID = referencedDisplaySet.displaySetInstanceUID;
+    displaySet.isReconstructable = referencedDisplaySet.isReconstructable;
   }
 
   displaySet.load = async ({ headers }) =>
@@ -232,7 +248,8 @@ function _segmentationExists(segDisplaySet) {
   return cstSegmentation.state.getSegmentation(segDisplaySet.displaySetInstanceUID);
 }
 
-function getSopClassHandlerModule({ servicesManager, extensionManager }) {
+function getSopClassHandlerModule(params: OhifTypes.Extensions.ExtensionParams) {
+  const { servicesManager, extensionManager } = params;
   const getDisplaySetsFromSeries = instances => {
     return _getDisplaySetsFromSeries(instances, servicesManager, extensionManager);
   };

@@ -9,8 +9,8 @@ import { useTranslation } from 'react-i18next';
 //
 import filtersMeta from './filtersMeta.js';
 import { useAppConfig } from '@state';
-import { useDebounce, useSearchParams } from '@hooks';
-import { utils } from '@ohif/core';
+import { useDebounce, useSearchParams } from '../../hooks';
+import { utils, Types as coreTypes } from '@ohif/core';
 
 import {
   StudyListExpandedRow,
@@ -18,8 +18,6 @@ import {
   StudyListTable,
   StudyListPagination,
   StudyListFilter,
-  useSessionStorage,
-  InvestigationalUseDialog,
   Button,
   ButtonEnums,
 } from '@ohif/ui';
@@ -32,8 +30,10 @@ import {
   TooltipContent,
   Clipboard,
   useModal,
+  useSessionStorage,
   Onboarding,
   ScrollArea,
+  InvestigationalUseDialog,
 } from '@ohif/ui-next';
 
 import { Types } from '@ohif/ui';
@@ -60,7 +60,6 @@ function WorkList({
   onRefresh,
   servicesManager,
 }: withAppTypes) {
-  const { hotkeyDefinitions, hotkeyDefaults } = hotkeysManager;
   const { show, hide } = useModal();
   const { t } = useTranslation();
   // ~ Modes
@@ -392,12 +391,21 @@ function WorkList({
                 })
               : appConfig.loadedModes
             ).map((mode, i) => {
+              if (mode.hide) {
+                // Hide this mode from display
+                return null;
+              }
               const modalitiesToCheck = modalities.replaceAll('/', '\\');
 
               const { valid: isValidMode, description: invalidModeDescription } = mode.isValidMode({
                 modalities: modalitiesToCheck,
                 study,
               });
+              if (isValidMode === null) {
+                // Hide this as a computed result.
+                return null;
+              }
+
               // TODO: Modes need a default/target route? We mostly support a single one for now.
               // We should also be using the route path, but currently are not
               // mode.routeName
@@ -426,10 +434,10 @@ function WorkList({
                     }}
                     // to={`${mode.routeName}/dicomweb?StudyInstanceUIDs=${studyInstanceUid}`}
                   >
-                    {/* TODO revisit the completely rounded style of buttons used for launching a mode from the worklist later - for now use LegacyButton*/}
+                    {/* TODO revisit the completely rounded style of buttons used for launching a mode from the worklist later */}
                     <Button
                       type={ButtonEnums.type.primary}
-                      size={ButtonEnums.size.medium}
+                      size={ButtonEnums.size.smallTall}
                       disabled={!isValidMode}
                       startIconTooltip={
                         !isValidMode ? (
@@ -447,7 +455,7 @@ function WorkList({
                       }
                       onClick={() => {}}
                       dataCY={`mode-${mode.routeName}-${studyInstanceUid}`}
-                      className={isValidMode ? 'text-[13px]' : 'bg-[#222d44] text-[13px]'}
+                      className={!isValidMode && 'bg-[#222d44]'}
                     >
                       {mode.displayName}
                     </Button>
@@ -466,28 +474,33 @@ function WorkList({
 
   const hasStudies = numOfStudies > 0;
 
-  const AboutModal = customizationService.getCustomization('ohif.aboutModal');
-  const UserPreferencesModal = customizationService.getCustomization('ohif.userPreferencesModal');
+  const AboutModal = customizationService.getCustomization(
+    'ohif.aboutModal'
+  ) as coreTypes.MenuComponentCustomization;
+  const UserPreferencesModal = customizationService.getCustomization(
+    'ohif.userPreferencesModal'
+  ) as coreTypes.MenuComponentCustomization;
 
   const menuOptions = [
     {
-      title: t('Header:About'),
+      title: AboutModal?.menuTitle ?? t('Header:About'),
       icon: 'info',
       onClick: () =>
         show({
-          content: AboutModal as React.ComponentType,
-          title: t('AboutModal:About OHIF Viewer'),
-          containerClassName: 'max-w-md ',
+          content: AboutModal,
+          title: AboutModal?.title ?? t('AboutModal:About OHIF Viewer'),
+          containerClassName: AboutModal?.containerClassName ?? 'max-w-md',
         }),
     },
     {
-      title: t('Header:Preferences'),
+      title: UserPreferencesModal.menuTitle ?? t('Header:Preferences'),
       icon: 'settings',
       onClick: () =>
         show({
-          title: t('UserPreferencesModal:User preferences'),
           content: UserPreferencesModal as React.ComponentType,
-          containerClassName: 'flex  max-w-4xl flex-col',
+          title: UserPreferencesModal.title ?? t('UserPreferencesModal:User preferences'),
+          containerClassName:
+            UserPreferencesModal?.containerClassName ?? 'flex max-w-4xl p-6 flex-col',
         }),
     },
   ];
@@ -511,6 +524,7 @@ function WorkList({
     DicomUploadComponent && dataSource.getConfig()?.dicomUploadEnabled
       ? {
           title: 'Upload files',
+          containerClassName: DicomUploadComponent?.containerClassName,
           closeButton: true,
           shouldCloseOnEsc: false,
           shouldCloseOnOverlayClick: false,

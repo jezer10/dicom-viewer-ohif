@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useImageViewer } from '@ohif/ui-next';
 import { useSystem, utils } from '@ohif/core';
 import { useNavigate } from 'react-router-dom';
@@ -7,20 +7,11 @@ import { PanelStudyBrowserHeader } from './PanelStudyBrowserHeader';
 import { defaultActionIcons } from './constants';
 import MoreDropdownMenu from '../../Components/MoreDropdownMenu';
 import { CallbackCustomization } from 'platform/core/src/types';
+import { type TabsProps } from '@ohif/core/src/utils/createStudyBrowserTabs';
 
 const { sortStudyInstances, formatDate, createStudyBrowserTabs } = utils;
 
-const thumbnailNoImageModalities = [
-  'SR',
-  'SEG',
-  'SM',
-  'RTSTRUCT',
-  'RTPLAN',
-  'RTDOSE',
-  'DOC',
-  'OT',
-  'PMAP',
-];
+const thumbnailNoImageModalities = ['SR', 'SEG', 'RTSTRUCT', 'RTPLAN', 'RTDOSE', 'DOC', 'PMAP'];
 
 /**
  * Study Browser component that displays and manages studies and their display sets
@@ -37,16 +28,20 @@ function PanelStudyBrowser({
   const { servicesManager, commandsManager, extensionManager } = useSystem();
   const { displaySetService, customizationService } = servicesManager.services;
   const navigate = useNavigate();
-  const studyMode = customizationService.getCustomization('studyBrowser.studyMode') || 'all';
+  const studyMode =
+    (customizationService.getCustomization('studyBrowser.studyMode') as string) || 'all';
 
   const internalImageViewer = useImageViewer();
   const StudyInstanceUIDs = internalImageViewer.StudyInstanceUIDs;
+  const fetchedStudiesRef = useRef(new Set());
 
   const [{ activeViewportId, viewports, isHangingProtocolLayout }] = useViewportGrid();
   const [activeTabName, setActiveTabName] = useState(studyMode);
-  const [expandedStudyInstanceUIDs, setExpandedStudyInstanceUIDs] = useState([
-    ...StudyInstanceUIDs,
-  ]);
+  const [expandedStudyInstanceUIDs, setExpandedStudyInstanceUIDs] = useState(
+    studyMode === 'primary' && StudyInstanceUIDs.length > 0
+      ? [StudyInstanceUIDs[0]]
+      : [...StudyInstanceUIDs]
+  );
   const [hasLoadedViewports, setHasLoadedViewports] = useState(false);
   const [studyDisplayList, setStudyDisplayList] = useState([]);
   const [displaySets, setDisplaySets] = useState([]);
@@ -115,6 +110,13 @@ function PanelStudyBrowser({
   useEffect(() => {
     // Fetch all studies for the patient in each primary study
     async function fetchStudiesForPatient(StudyInstanceUID) {
+      // Skip fetching if we've already fetched this study
+      if (fetchedStudiesRef.current.has(StudyInstanceUID)) {
+        return;
+      }
+
+      fetchedStudiesRef.current.add(StudyInstanceUID);
+
       // current study qido
       const qidoForStudyUID = await dataSource.query.studies.search({
         studyInstanceUid: StudyInstanceUID,
@@ -178,7 +180,7 @@ function PanelStudyBrowser({
     let currentDisplaySets = displaySetService.activeDisplaySets;
     // filter non based on the list of modalities that are supported by cornerstone
     currentDisplaySets = currentDisplaySets.filter(
-      ds => !thumbnailNoImageModalities.includes(ds.Modality)
+      ds => !thumbnailNoImageModalities.includes(ds.Modality) || ds.thumbnailSrc === null
     );
 
     if (!currentDisplaySets.length) {
@@ -188,20 +190,20 @@ function PanelStudyBrowser({
     currentDisplaySets.forEach(async dSet => {
       const newImageSrcEntry = {};
       const displaySet = displaySetService.getDisplaySetByUID(dSet.displaySetInstanceUID);
-      const imageIds = dataSource.getImageIdsForDisplaySet(displaySet);
+      const imageIds = dataSource.getImageIdsForDisplaySet(dSet);
 
       const imageId = getImageIdForThumbnail(displaySet, imageIds);
 
       // TODO: Is it okay that imageIds are not returned here for SR displaySets?
-      if (!imageId || displaySet?.unsupported) {
+      if (displaySet?.unsupported) {
         return;
       }
       // When the image arrives, render it and store the result in the thumbnailImgSrcMap
       let { thumbnailSrc } = displaySet;
       if (!thumbnailSrc && displaySet.getThumbnailSrc) {
-        thumbnailSrc = await displaySet.getThumbnailSrc();
+        thumbnailSrc = await displaySet.getThumbnailSrc({ getImageSrc });
       }
-      if (!thumbnailSrc) {
+      if (!thumbnailSrc && imageId) {
         const thumbnailSrc = await getImageSrc(imageId);
         displaySet.thumbnailSrc = thumbnailSrc;
       }
@@ -253,13 +255,11 @@ function PanelStudyBrowser({
         const { displaySetsAdded, options } = data;
         displaySetsAdded.forEach(async dSet => {
           const displaySetInstanceUID = dSet.displaySetInstanceUID;
-
           const newImageSrcEntry = {};
           const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
           if (displaySet?.unsupported) {
             return;
           }
-
           if (options?.madeInClient) {
             setJumpToDisplaySet(displaySetInstanceUID);
           }
@@ -275,7 +275,7 @@ function PanelStudyBrowser({
           // When the image arrives, render it and store the result in the thumbnailImgSrcMap
           let { thumbnailSrc } = displaySet;
           if (!thumbnailSrc && displaySet.getThumbnailSrc) {
-            thumbnailSrc = await displaySet.getThumbnailSrc();
+            thumbnailSrc = await displaySet.getThumbnailSrc({ getImageSrc });
           }
           if (!thumbnailSrc) {
             thumbnailSrc = await getImageSrc(imageId);
@@ -384,11 +384,13 @@ function PanelStudyBrowser({
     }
 
     const displaySetInstanceUID = jumpToDisplaySet;
-    // Set the activeTabName and expand the study
-    const thumbnailLocation = _findTabAndStudyOfDisplaySet(displaySetInstanceUID, tabs);
+    // It is possible to navigate to a study not currently in view
+    const thumbnailLocation = _findTabAndStudyOfDisplaySet(
+      displaySetInstanceUID,
+      tabs,
+      activeTabName
+    );
     if (!thumbnailLocation) {
-      console.warn('jumpToThumbnail: displaySet thumbnail not found.');
-
       return;
     }
     const { tabName, StudyInstanceUID } = thumbnailLocation;
@@ -492,7 +494,7 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
         seriesNumber: ds.SeriesNumber,
         modality: ds.Modality,
         seriesDate: formatDate(ds.SeriesDate),
-        numInstances: ds.numImageFrames,
+        numInstances: ds.numImageFrames ?? ds.instances?.length,
         loadingProgress,
         countIcon: ds.countIcon,
         messages: ds.messages,
@@ -512,7 +514,11 @@ function _mapDisplaySets(displaySets, displaySetLoadingState, thumbnailImageSrcM
 }
 
 function _getComponentType(ds) {
-  if (thumbnailNoImageModalities.includes(ds.Modality) || ds?.unsupported) {
+  if (
+    thumbnailNoImageModalities.includes(ds.Modality) ||
+    ds?.unsupported ||
+    ds.thumbnailSrc === null
+  ) {
     return 'thumbnailNoImage';
   }
 
@@ -532,23 +538,23 @@ function getImageIdForThumbnail(displaySet, imageIds) {
   return imageId;
 }
 
-function _findTabAndStudyOfDisplaySet(displaySetInstanceUID, tabs) {
-  for (let t = 0; t < tabs.length; t++) {
-    const { studies } = tabs[t];
+function _findTabAndStudyOfDisplaySet(
+  displaySetInstanceUID: string,
+  tabs: TabsProps,
+  currentTabName: string
+) {
+  const current = tabs.find(tab => tab.name === currentTabName) || tabs[0];
+  const biasedTabs = [current, ...tabs];
 
-    for (let s = 0; s < studies.length; s++) {
-      const { displaySets } = studies[s];
-
-      for (let d = 0; d < displaySets.length; d++) {
-        const displaySet = displaySets[d];
-
-        if (displaySet.displaySetInstanceUID === displaySetInstanceUID) {
-          return {
-            tabName: tabs[t].name,
-            StudyInstanceUID: studies[s].studyInstanceUid,
-          };
-        }
-      }
+  for (let t = 0; t < biasedTabs.length; t++) {
+    const study = biasedTabs[t].studies.find(study =>
+      study.displaySets.find(ds => ds.displaySetInstanceUID === displaySetInstanceUID)
+    );
+    if (study) {
+      return {
+        tabName: biasedTabs[t].name,
+        StudyInstanceUID: study.studyInstanceUid,
+      };
     }
   }
 }

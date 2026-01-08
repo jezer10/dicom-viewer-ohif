@@ -58,11 +58,10 @@ InputRow.Input = ({ className, ...props }) => (
 InputRow.Label.displayName = 'InputRow.Label';
 InputRow.Input.displayName = 'InputRow.Input';
 
-export default function PanelPetSUV({ servicesManager }: withAppTypes) {
-  const { commandsManager } = useSystem();
+export default function PanelPetSUV() {
+  const { commandsManager, servicesManager } = useSystem();
   const { t } = useTranslation('PanelSUV');
-  const { displaySetService, toolGroupService, toolbarService, hangingProtocolService } =
-    servicesManager.services;
+  const { displaySetService, hangingProtocolService } = servicesManager.services;
   const [metadata, setMetadata] = useState(DEFAULT_MEATADATA);
   const [ptDisplaySet, setPtDisplaySet] = useState(null);
 
@@ -254,10 +253,10 @@ export default function PanelPetSUV({ servicesManager }: withAppTypes) {
                 <Button
                   variant="default"
                   size="sm"
-                  className="w-28 self-end"
+                  className="self-end px-4"
                   onClick={updateMetadata}
                 >
-                  Reload Data
+                  {t('Reload Data')}
                 </Button>
               </div>
             </PanelSection.Content>

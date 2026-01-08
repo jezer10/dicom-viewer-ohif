@@ -39,10 +39,7 @@ import { useLutPresentationStore } from './stores/useLutPresentationStore';
 import { usePositionPresentationStore } from './stores/usePositionPresentationStore';
 import { useSegmentationPresentationStore } from './stores/useSegmentationPresentationStore';
 import { imageRetrieveMetadataProvider } from '@cornerstonejs/core/utilities';
-import {
-  setupSegmentationDataModifiedHandler,
-  setupSegmentationModifiedHandler,
-} from './utils/segmentationHandlers';
+import { initializeWebWorkerProgressHandler } from './utils/initWebWorkerProgressHandler';
 
 const { registerColormap } = csUtilities.colormap;
 
@@ -58,6 +55,10 @@ export default async function init({
   extensionManager,
   appConfig,
 }: withAppTypes): Promise<void> {
+  // Use a public library path of PUBLIC_URL plus the component name
+  // This safely separates components that are loaded as-is.
+  window.PUBLIC_LIB_URL ||= './${component}/';
+
   // Note: this should run first before initializing the cornerstone
   // DO NOT CHANGE THE ORDER
 
@@ -96,7 +97,20 @@ export default async function init({
     viewportGridService,
     segmentationService,
     measurementService,
+    colorbarService,
+    displaySetService,
+    toolbarService,
   } = servicesManager.services;
+
+  toolbarService.registerEventForToolbarUpdate(colorbarService, [
+    colorbarService.EVENTS.STATE_CHANGED,
+  ]);
+
+  toolbarService.registerEventForToolbarUpdate(segmentationService, [
+    segmentationService.EVENTS.SEGMENTATION_MODIFIED,
+    segmentationService.EVENTS.SEGMENTATION_REPRESENTATION_MODIFIED,
+    segmentationService.EVENTS.SEGMENTATION_ANNOTATION_CUT_MERGE_PROCESS_COMPLETED,
+  ]);
 
   window.services = servicesManager.services;
   window.extensionManager = extensionManager;
@@ -123,10 +137,18 @@ export default async function init({
     getSegmentationPresentationId
   );
 
-  cornerstoneTools.segmentation.config.style.setStyle(
+  segmentationService.setStyle(
     { type: SegmentationRepresentations.Contour },
     {
+      // Declare these alpha values at the Contour type level so that they can be set/changed/inherited for all contour segmentations.
+      fillAlpha: 0.5,
+      fillAlphaInactive: 0.4,
+
+      // In general do not fill contours so that hydrated RTSTRUCTs are not filled in when active or inactive by default.
+      // However, hydrated RTSTRUCTs are filled in when active or inactive if the user chooses to fill ALL contours.
+      // Those Contours created in OHIF (i.e. using the Segmentation Panel) will override both fill properties upon creation.
       renderFill: false,
+      renderFillInactive: false,
     }
   );
 
@@ -176,32 +198,19 @@ export default async function init({
   initWADOImageLoader(userAuthenticationService, appConfig, extensionManager);
 
   /* Measurement Service */
-  this.measurementServiceSource = connectToolsToMeasurementService(servicesManager);
+  this.measurementServiceSource = connectToolsToMeasurementService({
+    servicesManager,
+    commandsManager,
+    extensionManager,
+  });
 
   initCineService(servicesManager);
   initStudyPrefetcherService(servicesManager);
 
-  [
-    measurementService.EVENTS.JUMP_TO_MEASUREMENT_LAYOUT,
-    measurementService.EVENTS.JUMP_TO_MEASUREMENT_VIEWPORT,
-  ].forEach(event => {
-    measurementService.subscribe(event, evt => {
-      const { measurement } = evt;
-      const { uid: annotationUID } = measurement;
-      cornerstoneTools.annotation.selection.setAnnotationSelected(annotationUID, true);
-    });
-  });
-
-  // Setup segmentation event handlers
-  const { unsubscribe: unsubscribeSegmentationDataModifiedHandler } =
-    setupSegmentationDataModifiedHandler({
-      segmentationService,
-      customizationService,
-      commandsManager,
-    });
-
-  const { unsubscribe: unsubscribeSegmentationModifiedHandler } = setupSegmentationModifiedHandler({
-    segmentationService,
+  measurementService.subscribe(measurementService.EVENTS.JUMP_TO_MEASUREMENT, evt => {
+    const { measurement } = evt;
+    const { uid: annotationUID } = measurement;
+    commandsManager.runCommand('jumpToMeasurementViewport', { measurement, annotationUID, evt });
   });
 
   // When a custom image load is performed, update the relevant viewports
@@ -232,16 +241,6 @@ export default async function init({
     }
   );
 
-  // resize the cornerstone viewport service when the grid size changes
-  // IMPORTANT: this should happen outside of the OHIFCornerstoneViewport
-  // since it will trigger a rerender of each viewport and each resizing
-  // the offscreen canvas which would result in a performance hit, this should
-  // done only once per grid resize here. Doing it once here, allows us to reduce
-  // the refreshRage(in ms) to 10 from 50. I tried with even 1 or 5 ms it worked fine
-  viewportGridService.subscribe(viewportGridService.EVENTS.GRID_SIZE_CHANGED, () => {
-    cornerstoneViewportService.resize(true);
-  });
-
   initContextMenu({
     cornerstoneViewportService,
     customizationService,
@@ -265,8 +264,17 @@ export default async function init({
   eventTarget.addEventListener(EVENTS.IMAGE_LOAD_FAILED, imageLoadFailedHandler);
   eventTarget.addEventListener(EVENTS.IMAGE_LOAD_ERROR, imageLoadFailedHandler);
 
+  const getDisplaySetFromVolumeId = (volumeId: string) => {
+    const allDisplaySets = displaySetService.getActiveDisplaySets();
+    const volume = cornerstone.cache.getVolume(volumeId);
+    const imageIds = volume.imageIds;
+    return allDisplaySets.find(ds => ds.imageIds?.some(id => imageIds.includes(id)));
+  };
+
   function elementEnabledHandler(evt) {
     const { element } = evt.detail;
+    const { viewport } = getEnabledElement(element);
+    initViewTiming({ element });
 
     element.addEventListener(EVENTS.CAMERA_RESET, evt => {
       const { element } = evt.detail;
@@ -278,7 +286,10 @@ export default async function init({
       commandsManager.runCommand('resetCrosshairs', { viewportId });
     });
 
-    initViewTiming({ element });
+    // limitation: currently supporting only volume viewports with fusion
+    if (viewport.type !== cornerstone.Enums.ViewportType.ORTHOGRAPHIC) {
+      return;
+    }
   }
 
   eventTarget.addEventListener(EVENTS.ELEMENT_ENABLED, elementEnabledHandler.bind(null));
@@ -289,58 +300,25 @@ export default async function init({
   eventTarget.addEventListenerDebounced(
     EVENTS.ERROR_EVENT,
     ({ detail }) => {
+      // Create a stable ID for deduplication based on error type and message
+      const errorId = `cornerstone-error-${detail.type}-${detail.message.substring(0, 50)}`;
+
       uiNotificationService.show({
         title: detail.type,
         message: detail.message,
         type: 'error',
+        id: errorId,
+        allowDuplicates: false, // Prevent duplicate error notifications
+        deduplicationInterval: 30000, // 30 seconds deduplication window
       });
     },
     100
   );
 
+  // Subscribe to actor events to dynamically update colorbars
+
   // Call this function when initializing
   initializeWebWorkerProgressHandler(servicesManager.services.uiNotificationService);
-
-  const unsubscriptions = [
-    unsubscribeSegmentationDataModifiedHandler,
-    unsubscribeSegmentationModifiedHandler,
-  ];
-
-  return { unsubscriptions };
-}
-
-function initializeWebWorkerProgressHandler(uiNotificationService) {
-  const activeToasts = new Map();
-
-  // eventTarget.addEventListener(EVENTS.WEB_WORKER_PROGRESS, ({ detail }) => {
-  //   const { progress, type, id } = detail;
-
-  //   const cacheKey = `${type}-${id}`;
-  //   if (progress === 0 && !activeToasts.has(cacheKey)) {
-  //     const progressPromise = new Promise((resolve, reject) => {
-  //       activeToasts.set(cacheKey, { resolve, reject });
-  //     });
-
-  //     uiNotificationService.show({
-  //       id: cacheKey,
-  //       title: `${type}`,
-  //       message: `${type}: ${progress}%`,
-  //       autoClose: false,
-  //       promise: progressPromise,
-  //       promiseMessages: {
-  //         loading: `Computing...`,
-  //         success: `Completed successfully`,
-  //         error: 'Web Worker failed',
-  //       },
-  //     });
-  //   } else {
-  //     if (progress === 100) {
-  //       const { resolve } = activeToasts.get(cacheKey);
-  //       resolve({ progress, type });
-  //       activeToasts.delete(cacheKey);
-  //     }
-  //   }
-  // });
 }
 
 /**

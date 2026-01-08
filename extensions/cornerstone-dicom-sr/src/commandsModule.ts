@@ -1,11 +1,13 @@
-import { metaData, utilities } from '@cornerstonejs/core';
+import { metaData } from '@cornerstonejs/core';
 
-import OHIF, { DicomMetadataStore } from '@ohif/core';
+import OHIF, { DicomMetadataStore, utils } from '@ohif/core';
 import dcmjs from 'dcmjs';
 import { adaptersSR } from '@cornerstonejs/adapters';
 
 import getFilteredCornerstoneToolState from './utils/getFilteredCornerstoneToolState';
 import hydrateStructuredReport from './utils/hydrateStructuredReport';
+
+const { downloadBlob } = utils;
 
 const { MeasurementReport } = adaptersSR.Cornerstone3D;
 const { log } = OHIF;
@@ -32,12 +34,7 @@ const _generateReport = (measurementData, additionalFindingTypes, options: Optio
     additionalFindingTypes
   );
 
-  const report = MeasurementReport.generateReport(
-    filteredToolState,
-    metaData,
-    utilities.worldToImageCoords,
-    options
-  );
+  const report = MeasurementReport.generateReport(filteredToolState, metaData, options);
 
   const { dataset } = report;
 
@@ -47,14 +44,12 @@ const _generateReport = (measurementData, additionalFindingTypes, options: Optio
     dataset.SpecificCharacterSet = 'ISO_IR 192';
   }
 
-  dataset.InstanceNumber = options.InstanceNumber ?? 1;
-
   return dataset;
 };
 
 const commandsModule = (props: withAppTypes) => {
   const { servicesManager, extensionManager, commandsManager } = props;
-  const { customizationService, viewportGridService, displaySetService } = servicesManager.services;
+  const { customizationService } = servicesManager.services;
 
   const actions = {
     changeColorMeasurement: ({ uid }) => {
@@ -90,8 +85,7 @@ const commandsModule = (props: withAppTypes) => {
       const reportBlob = dcmjs.data.datasetToBlob(srDataset);
 
       //Create a URL for the binary.
-      const objectUrl = URL.createObjectURL(reportBlob);
-      window.location.assign(objectUrl);
+      downloadBlob(reportBlob, { filename: 'dicom-sr.dcm' });
     },
 
     /**
@@ -129,6 +123,9 @@ const commandsModule = (props: withAppTypes) => {
           console.log('naturalizedReport missing imaging content', naturalizedReport);
           throw new Error('Invalid report, no content');
         }
+        if (!naturalizedReport.SOPClassUID) {
+          throw new Error('No sop class uid');
+        }
 
         const onBeforeDicomStore = customizationService.getCustomization('onBeforeDicomStore');
 
@@ -160,36 +157,18 @@ const commandsModule = (props: withAppTypes) => {
      * Loads measurements by hydrating and loading the SR for the given display set instance UID
      * and displays it in the active viewport.
      */
-    loadSRMeasurements: ({ displaySetInstanceUID }) => {
-      const { SeriesInstanceUIDs } = hydrateStructuredReport(
+    hydrateStructuredReport: ({ displaySetInstanceUID }) => {
+      return hydrateStructuredReport(
         { servicesManager, extensionManager, commandsManager },
         displaySetInstanceUID
       );
-
-      const displaySets = displaySetService.getDisplaySetsForSeries(SeriesInstanceUIDs[0]);
-      if (displaySets.length) {
-        commandsManager.run('setDisplaySetsForViewports', {
-          viewportsToUpdate: [
-            {
-              viewportId: viewportGridService.getActiveViewportId(),
-              displaySetInstanceUIDs: [displaySets[0].displaySetInstanceUID],
-            },
-          ],
-        });
-      }
     },
   };
 
   const definitions = {
-    downloadReport: {
-      commandFn: actions.downloadReport,
-    },
-    storeMeasurements: {
-      commandFn: actions.storeMeasurements,
-    },
-    loadSRMeasurements: {
-      commandFn: actions.loadSRMeasurements,
-    },
+    downloadReport: actions.downloadReport,
+    storeMeasurements: actions.storeMeasurements,
+    hydrateStructuredReport: actions.hydrateStructuredReport,
   };
 
   return {

@@ -26,6 +26,7 @@ import sortInstancesByPosition from './sortInstancesByPosition';
 import imageIdToURI from './imageIdToURI';
 import debounce from './debounce';
 import roundNumber from './roundNumber';
+import toNumber from './toNumber';
 import downloadCSVReport from './downloadCSVReport';
 import isEqualWithin from './isEqualWithin';
 import addAccessors from './addAccessors';
@@ -35,12 +36,20 @@ import {
   sortStudyInstances,
   sortingCriteria,
   seriesSortCriteria,
+  instancesSortCriteria,
 } from './sortStudy';
 import { splitComma, getSplitParam } from './splitComma';
 import { createStudyBrowserTabs } from './createStudyBrowserTabs';
 import { sopClassDictionary } from './sopClassDictionary';
 import * as MeasurementFilters from './measurementFilters';
 import getClosestOrientationFromIOP from './getClosestOrientationFromIOP';
+import calculateScanAxisNormal from './calculateScanAxisNormal';
+import areAllImageOrientationsEqual from './areAllImageOrientationsEqual';
+import { structuredCloneWithFunctions } from './structuredCloneWithFunctions';
+import { buildButtonCommands } from './buildButtonCommands';
+
+import { downloadBlob, downloadUrl, downloadCsv, downloadDicom } from './downloadBlob';
+
 // Commented out unused functionality.
 // Need to implement new mechanism for derived displaySets using the displaySetManager.
 
@@ -56,6 +65,7 @@ const utils = {
   sortStudyInstances,
   sortingCriteria,
   seriesSortCriteria,
+  instancesSortCriteria,
   writeScript,
   formatDate,
   formatTime,
@@ -66,6 +76,7 @@ const utils = {
   //loadAndCacheDerivedDisplaySets,
   makeDeferred,
   makeCancelable,
+  structuredCloneWithFunctions,
   hotkeys,
   Queue,
   isDicomUid,
@@ -80,6 +91,7 @@ const utils = {
   isDisplaySetReconstructable,
   debounce,
   roundNumber,
+  toNumber,
   downloadCSVReport,
   splitComma,
   getSplitParam,
@@ -87,6 +99,12 @@ const utils = {
   createStudyBrowserTabs,
   MeasurementFilters,
   getClosestOrientationFromIOP,
+  calculateScanAxisNormal,
+  areAllImageOrientationsEqual,
+  downloadBlob,
+  downloadUrl,
+  downloadCsv,
+  downloadDicom,
 };
 
 export {
@@ -101,6 +119,7 @@ export {
   //loadAndCacheDerivedDisplaySets,
   makeDeferred,
   makeCancelable,
+  structuredCloneWithFunctions,
   hotkeys,
   Queue,
   isDicomUid,
@@ -115,6 +134,7 @@ export {
   imageIdToURI,
   debounce,
   roundNumber,
+  toNumber,
   downloadCSVReport,
   splitComma,
   getSplitParam,
@@ -122,6 +142,11 @@ export {
   createStudyBrowserTabs,
   MeasurementFilters,
   getClosestOrientationFromIOP,
+  buildButtonCommands,
+  downloadBlob,
+  downloadUrl,
+  downloadCsv,
+  downloadDicom,
 };
 
 export default utils;

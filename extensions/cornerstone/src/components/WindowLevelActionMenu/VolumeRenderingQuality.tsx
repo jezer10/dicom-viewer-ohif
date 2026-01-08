@@ -1,16 +1,18 @@
 import React, { ReactElement, useCallback, useState, useEffect } from 'react';
 import { VolumeRenderingQualityProps } from '../../types/ViewportPresets';
 import { Numeric } from '@ohif/ui-next';
+import { useSystem } from '@ohif/core';
+import { useTranslation } from 'react-i18next';
 
 export function VolumeRenderingQuality({
   volumeRenderingQualityRange,
-  commandsManager,
-  servicesManager,
   viewportId,
 }: VolumeRenderingQualityProps): ReactElement {
+  const { servicesManager, commandsManager } = useSystem();
   const { cornerstoneViewportService } = servicesManager.services;
   const { min, max, step } = volumeRenderingQualityRange;
   const [quality, setQuality] = useState(null);
+  const { t } = useTranslation('WindowLevelActionMenu');
 
   const onChange = useCallback(
     (value: number) => {
@@ -53,7 +55,7 @@ export function VolumeRenderingQuality({
             onChange={onChange}
           >
             <div className="flex flex-row items-center">
-              <Numeric.Label className="w-16">Quality</Numeric.Label>
+              <Numeric.Label className="w-16">{t('Quality')}</Numeric.Label>
               <Numeric.SingleRange sliderClassName="mx-2 flex-grow" />
             </div>
           </Numeric.Container>

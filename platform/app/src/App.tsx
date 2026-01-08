@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import PropTypes from 'prop-types';
 import i18n from '@ohif/i18n';
 import { I18nextProvider } from 'react-i18next';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, type BrowserRouterProps } from 'react-router-dom';
 
 import Compose from './routes/Mode/Compose';
 import {
@@ -13,6 +13,7 @@ import {
   HotkeysManager,
   ServiceProvidersManager,
   SystemContextProvider,
+  ViewportRefsProvider,
 } from '@ohif/core';
 import {
   ThemeWrapper as ThemeWrapperNext,
@@ -34,12 +35,18 @@ import createRoutes from './routes';
 import appInit from './appInit.js';
 import OpenIdConnectRoutes from './utils/OpenIdConnectRoutes';
 import { ShepherdJourneyProvider } from 'react-shepherd';
+import './App.css';
 
 let commandsManager: CommandsManager,
   extensionManager: ExtensionManager,
   servicesManager: AppTypes.ServicesManager,
   serviceProvidersManager: ServiceProvidersManager,
   hotkeysManager: HotkeysManager;
+
+const routerFutureFlags: BrowserRouterProps['future'] = {
+  v7_startTransition: true,
+  v7_relativeSplatPath: true,
+};
 
 function App({
   config = {
@@ -112,6 +119,7 @@ function App({
     [I18nextProvider, { i18n }],
     [ThemeWrapperNext],
     [SystemContextProvider, { commandsManager, extensionManager, hotkeysManager, servicesManager }],
+    [ViewportRefsProvider],
     [ViewportGridProvider, { service: viewportGridService }],
     [ViewportDialogProvider, { service: uiViewportDialogService }],
     [CineProvider, { service: cineService }],
@@ -161,7 +169,10 @@ function App({
 
   return (
     <CombinedProviders>
-      <BrowserRouter basename={routerBasename}>
+      <BrowserRouter
+        basename={routerBasename}
+        future={routerFutureFlags}
+      >
         {authRoutes}
         {appRoutes}
       </BrowserRouter>

@@ -17,7 +17,6 @@
   "editor.formatOnSave": true,
   "eslint.run": "onSave",
   "jest.autoRun": "off",
-  "prettier.disableLanguages": ["html"],
   "prettier.endOfLine": "lf",
   "workbench.colorCustomizations": {},
   "editor.codeActionsOnSave": {
@@ -82,6 +81,7 @@
     "Reslices",
     "roadmap",
     "ROADMAPS",
+    "rtstruct",
     "Segmentations",
     "semibold",
     "sitk",
@@ -109,9 +109,8 @@
     "wado",
     "wadors",
     "wadouri",
-    "workerpool"
-  ],
-  "[dockerfile]": {
-    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
-  }
+    "workerpool",
+    "Colorbar",
+    "Colorbars"
+  ]
 }

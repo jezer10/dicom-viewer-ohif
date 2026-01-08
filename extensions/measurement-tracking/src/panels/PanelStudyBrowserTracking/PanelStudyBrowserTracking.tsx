@@ -5,17 +5,7 @@ import PanelStudyBrowser from '@ohif/extension-default/src/Panels/StudyBrowser/P
 import { UntrackSeriesModal } from './untrackSeriesModal';
 import { useTrackedMeasurements } from '../../getContextModule';
 
-const thumbnailNoImageModalities = [
-  'SR',
-  'SEG',
-  'SM',
-  'RTSTRUCT',
-  'RTPLAN',
-  'RTDOSE',
-  'DOC',
-  'OT',
-  'PMAP',
-];
+const thumbnailNoImageModalities = ['SR', 'SEG', 'RTSTRUCT', 'RTPLAN', 'RTDOSE', 'PMAP'];
 
 /**
  * Panel component for the Study Browser with tracking capabilities
@@ -34,7 +24,7 @@ export default function PanelStudyBrowserTracking({
 
   const checkDirtyMeasurements = displaySetInstanceUID => {
     const displaySet = displaySetService.getDisplaySetByUID(displaySetInstanceUID);
-    if (displaySet.Modality === 'SR') {
+    if (displaySet.Modality === 'SR' || displaySet.Modality === 'ANN') {
       const activeViewportId = viewportGridService.getActiveViewportId();
       sendTrackedMeasurementsEvent('CHECK_DIRTY', {
         viewportId: activeViewportId,
@@ -105,7 +95,7 @@ export default function PanelStudyBrowserTracking({
           seriesNumber: ds.SeriesNumber,
           modality: ds.Modality,
           seriesDate: ds.SeriesDate ? new Date(ds.SeriesDate).toLocaleDateString() : '',
-          numInstances: ds.numImageFrames,
+          numInstances: ds.numImageFrames ?? ds.instances?.length,
           loadingProgress,
           countIcon: ds.countIcon,
           messages: ds.messages,
@@ -126,7 +116,11 @@ export default function PanelStudyBrowserTracking({
 
   // Override component type to use tracking specific components
   const getComponentType = ds => {
-    if (thumbnailNoImageModalities.includes(ds.Modality) || ds?.unsupported) {
+    if (
+      thumbnailNoImageModalities.includes(ds.Modality) ||
+      ds.unsupported ||
+      ds.thumbnailSrc === null
+    ) {
       return 'thumbnailNoImage';
     }
     return 'thumbnailTracked';
