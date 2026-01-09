@@ -82,6 +82,8 @@ module.exports = (env, argv) => {
         SRC_DIR,
         path.resolve(__dirname, 'modes/monai-label/node_modules'),
         path.resolve(__dirname, 'extensions/monai-label/node_modules'),
+        path.resolve(__dirname, 'modes/monai-label/node_modules'),
+        path.resolve(__dirname, 'extensions/monai-label/node_modules'),
       ],
     },
     plugins: [
