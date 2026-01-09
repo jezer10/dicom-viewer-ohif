@@ -3,6 +3,7 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+<<<<<<< HEAD
 # [3.12.0-beta.118](https://github.com/OHIF/Viewers/compare/v3.12.0-beta.117...v3.12.0-beta.118) (2026-01-07)
 
 
@@ -1060,6 +1061,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 # [3.12.0-beta.1](https://github.com/OHIF/Viewers/compare/v3.12.0-beta.0...v3.12.0-beta.1) (2025-08-05)
+=======
+## [3.11.1](https://github.com/OHIF/Viewers/compare/v3.11.0...v3.11.1) (2025-10-28)
+>>>>>>> v3.11.1
 
 **Note:** Version bump only for package @ohif/extension-cornerstone
 
@@ -1067,7 +1071,11 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 
 
+<<<<<<< HEAD
 # [3.12.0-beta.0](https://github.com/OHIF/Viewers/compare/v3.11.0-beta.116...v3.12.0-beta.0) (2025-08-05)
+=======
+# [3.11.0](https://github.com/OHIF/Viewers/compare/v3.11.0-beta.116...v3.11.0) (2025-08-05)
+>>>>>>> v3.11.1
 
 **Note:** Version bump only for package @ohif/extension-cornerstone
 

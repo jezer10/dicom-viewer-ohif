@@ -87,7 +87,11 @@ const renderRangeSetting = option => {
       className="flex items-center"
       key={option.id}
     >
+<<<<<<< HEAD
       <div className="w-1/3 text-[13px]">{renderLabelWithTooltip(option.name, option.tooltip)}</div>
+=======
+      <div className="w-1/3 text-[13px]">{option.name}</div>
+>>>>>>> v3.11.1
       <div
         className="w-2/3"
         data-cy={option.id}

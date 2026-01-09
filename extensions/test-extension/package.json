@@ -1,15 +1,16 @@
 {
-  "name": "@ohif/extension-cornerstone-dynamic-volume",
+  "name": "@ohif/extension-test",
   "version": "3.11.1",
-  "description": "OHIF extension for 4D volumes data",
+  "description": "OHIF extension used inside e2e testing",
   "author": "OHIF",
   "license": "MIT",
   "repository": "OHIF/Viewers",
-  "main": "dist/ohif-extension-cornerstone-dynamic-volume.umd.js",
-  "module": "src/index.ts",
-  "exports": {
-    ".": "./src/index.ts",
-    "./types": "./src/types/index.ts"
+  "main": "dist/ohif-extension-test.umd.js",
+  "module": "src/index.tsx",
+  "engines": {
+    "node": ">=14",
+    "npm": ">=6",
+    "yarn": ">=1.16.0"
   },
   "files": [
     "dist",
@@ -19,20 +20,17 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "cross-env NODE_ENV=development webpack --config .webpack/webpack.dev.js --watch --output-pathinfo",
-    "build": "cross-env NODE_ENV=production webpack --config .webpack/webpack.prod.js",
-    "build:package": "yarn run build",
     "clean": "shx rm -rf dist",
     "clean:deep": "yarn run clean && shx rm -rf node_modules",
+    "dev": "cross-env NODE_ENV=development webpack --config .webpack/webpack.dev.js --watch --output-pathinfo",
+    "build": "cross-env NODE_ENV=production webpack --config .webpack/webpack.prod.js",
+    "build:package-1": "yarn run build",
     "start": "yarn run dev",
     "test:unit": "jest --watchAll",
     "test:unit:ci": "jest --ci --runInBand --collectCoverage --passWithNoTests"
   },
   "peerDependencies": {
     "@ohif/core": "3.11.1",
-    "@ohif/extension-cornerstone": "3.11.1",
-    "@ohif/extension-default": "3.11.1",
-    "@ohif/i18n": "3.11.1",
     "@ohif/ui": "3.11.1",
     "dcmjs": "0.43.1",
     "dicom-parser": "1.8.21",
@@ -42,8 +40,6 @@
   },
   "dependencies": {
     "@babel/runtime": "7.28.2",
-    "@cornerstonejs/core": "4.5.13",
-    "@cornerstonejs/tools": "4.5.13",
     "classnames": "2.5.1"
   }
 }

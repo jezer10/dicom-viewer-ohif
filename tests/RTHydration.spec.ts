@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
   await visitStudy(page, studyInstanceUID, mode, 2000);
 });
 
+<<<<<<< HEAD
 test('should hydrate RT reports correctly', async ({
   page,
   DOMOverlayPageObject,
@@ -24,6 +25,19 @@ test('should hydrate RT reports correctly', async ({
   await rightPanelPageObject.labelMapSegmentationPanel.panel
     .segmentationByText('Small Sphere')
     .click();
+=======
+test('should hydrate RT reports correctly', async ({ page }) => {
+  await page.getByTestId('side-panel-header-right').click();
+  await page.getByTestId('study-browser-thumbnail-no-image').dblclick();
+  await page.waitForTimeout(5000);
+  await checkForScreenshot(page, page, screenShotPaths.rtHydration.rtPreHydration);
+
+  await page.getByTestId('yes-hydrate-btn').click();
+  await page.waitForTimeout(5000);
+  await checkForScreenshot(page, page, screenShotPaths.rtHydration.rtPostHydration);
+
+  await page.getByText('Small Sphere').click();
+>>>>>>> v3.11.1
   await page.waitForTimeout(5000);
   await checkForScreenshot(page, page, screenShotPaths.rtHydration.rtJumpToStructure);
 });

@@ -112,7 +112,11 @@ interface DataRowProps {
   children?: React.ReactNode;
 }
 
+<<<<<<< HEAD
 const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
+=======
+const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
+>>>>>>> v3.11.1
   (
     {
       number,
@@ -126,6 +130,7 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
       onRename,
       onDelete,
       onColor,
+<<<<<<< HEAD
       onCopy,
       isSelected = false,
       isSecondarySelected = false,
@@ -175,6 +180,42 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
       return txt.value;
     };
 
+=======
+      isSelected = false,
+      isVisible = true,
+      disableEditing = false,
+      className,
+    },
+    ref
+  ) => {
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+    const isTitleLong = title?.length > 25;
+
+    const handleAction = (action: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      switch (action) {
+        case 'Rename':
+          onRename(e);
+          break;
+        case 'Lock':
+          onToggleLocked(e);
+          break;
+        case 'Delete':
+          onDelete(e);
+          break;
+        case 'Color':
+          onColor(e);
+          break;
+      }
+    };
+
+    const decodeHTML = (html: string) => {
+      const txt = document.createElement('textarea');
+      txt.innerHTML = html;
+      return txt.value;
+    };
+
+>>>>>>> v3.11.1
     const renderDetailText = (text: string, indent: number = 0) => {
       const indentation = '  '.repeat(indent);
       if (text === '') {
@@ -245,6 +286,7 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
           onClick={onSelect}
           data-cy="data-row"
         >
+<<<<<<< HEAD
           {/* Secondary Selection Tint (below hover, always visible when secondary-selected) */}
           {isSecondarySelected && (
             <div className="bg-primary/20 pointer-events-none absolute inset-0"></div>
@@ -274,6 +316,33 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
             </div>
           )}
 
+=======
+          {/* Hover Overlay */}
+          <div className="bg-primary/20 pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"></div>
+
+          {/* Number Box */}
+          {number !== null && (
+            <div
+              className={`flex h-7 max-h-7 w-7 flex-shrink-0 items-center justify-center rounded-l border-r border-black text-base ${
+                isSelected ? 'bg-highlight text-black' : 'bg-muted text-muted-foreground'
+              } overflow-hidden`}
+            >
+              {number}
+            </div>
+          )}
+
+          {/* add some space if there is not segment index */}
+          {number === null && <div className="ml-1 h-7"></div>}
+          {colorHex && (
+            <div className="flex h-7 w-5 items-center justify-center">
+              <span
+                className="ml-2 h-2 w-2 rounded-full"
+                style={{ backgroundColor: colorHex }}
+              ></span>
+            </div>
+          )}
+
+>>>>>>> v3.11.1
           {/* Label with Conditional Tooltip */}
           <div className="ml-2 flex-1 overflow-hidden">
             {isTitleLong ? (
@@ -314,8 +383,12 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
               className={`h-6 w-6 transition-opacity ${
                 isSelected || !isVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
               }`}
+<<<<<<< HEAD
               aria-label={isVisible ? t('Hide') : t('Show')}
               dataCY="data-row-visibility-toggle"
+=======
+              aria-label={isVisible ? 'Hide' : 'Show'}
+>>>>>>> v3.11.1
               onClick={e => {
                 e.stopPropagation();
                 onToggleVisibility(e);
@@ -329,9 +402,12 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
               <Icons.Lock className="text-muted-foreground h-6 w-6" />
             )}
 
+<<<<<<< HEAD
             {/* Status Components */}
             {statusComponents}
 
+=======
+>>>>>>> v3.11.1
             {/* Actions Dropdown Menu */}
             {disableEditing && <div className="h-6 w-6"></div>}
             {!disableEditing && (
@@ -364,6 +440,7 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
                         className="pl-2"
                         data-cy="Rename"
                       >
+<<<<<<< HEAD
                         {t('Rename')}
                       </span>
                     </DropdownMenuItem>
@@ -378,13 +455,22 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
                         </span>
                       </DropdownMenuItem>
                     )}
+=======
+                        Rename
+                      </span>
+                    </DropdownMenuItem>
+>>>>>>> v3.11.1
                     <DropdownMenuItem onClick={e => handleAction('Delete', e)}>
                       <Icons.Delete className="text-foreground" />
                       <span
                         className="pl-2"
                         data-cy="Delete"
                       >
+<<<<<<< HEAD
                         {t('Delete')}
+=======
+                        Delete
+>>>>>>> v3.11.1
                       </span>
                     </DropdownMenuItem>
                     {onColor && (
@@ -394,7 +480,11 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
                           className="pl-2"
                           data-cy="Change Color"
                         >
+<<<<<<< HEAD
                           {t('Change Color')}
+=======
+                          Change Color
+>>>>>>> v3.11.1
                         </span>
                       </DropdownMenuItem>
                     )}
@@ -404,7 +494,11 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
                         className="pl-2"
                         data-cy="LockToggle"
                       >
+<<<<<<< HEAD
                         {isLocked ? t('Unlock') : t('Lock')}
+=======
+                        {isLocked ? 'Unlock' : 'Lock'}
+>>>>>>> v3.11.1
                       </span>
                     </DropdownMenuItem>
                   </>
@@ -431,6 +525,7 @@ const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
     );
   }
 );
+<<<<<<< HEAD
 
 DataRowComponent.displayName = 'DataRow';
 
@@ -463,6 +558,8 @@ const Status: React.FC<StatusProps> & {
 } = ({ children }) => {
   return <>{children}</>;
 };
+=======
+>>>>>>> v3.11.1
 
 const StatusWarning: React.FC<{ tooltip?: string }> = ({ tooltip }) => (
   <StatusIndicator

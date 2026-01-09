@@ -1,5 +1,13 @@
+<<<<<<< HEAD
 import { checkForScreenshot, screenShotPaths, test, visitStudy } from './utils';
 import { press } from './utils/keyboardUtils';
+=======
+import { test } from 'playwright-test-coverage';
+import { visitStudy, checkForScreenshot, screenShotPaths } from './utils';
+import { press } from './utils/keyboardUtils';
+import { simulateNormalizedDragOnElement } from './utils/simulateDragOnElement';
+import { viewportLocator } from './utils/locators';
+>>>>>>> v3.11.1
 
 test.beforeEach(async ({ page }) => {
   const studyInstanceUID = '1.3.6.1.4.1.14519.5.2.1.256467663913010332776401703474716742458';
@@ -9,10 +17,13 @@ test.beforeEach(async ({ page }) => {
 
 test('should prevent editing of label map segmentations when panelSegmentation.disableEditing is true', async ({
   page,
+<<<<<<< HEAD
   DOMOverlayPageObject,
   leftPanelPageObject,
   rightPanelPageObject,
   viewportPageObject,
+=======
+>>>>>>> v3.11.1
 }) => {
   // disable editing of segmentations via the customization service
   await page.evaluate(() => {
@@ -23,6 +34,7 @@ test('should prevent editing of label map segmentations when panelSegmentation.d
       }
     );
   });
+<<<<<<< HEAD
   await rightPanelPageObject.labelMapSegmentationPanel.select();
 
   await leftPanelPageObject.loadSeriesByModality('SEG');
@@ -30,6 +42,13 @@ test('should prevent editing of label map segmentations when panelSegmentation.d
   await page.waitForTimeout(5000);
 
   await DOMOverlayPageObject.viewport.segmentationHydration.yes.click();
+=======
+  await page.getByTestId('study-browser-thumbnail-no-image').dblclick();
+  // Wait for the segmentation to be loaded.
+  await page.waitForTimeout(5000);
+
+  await page.getByTestId('yes-hydrate-btn').click();
+>>>>>>> v3.11.1
 
   // Wait for the segmentation to hydrate.
   await page.waitForTimeout(5000);
@@ -40,6 +59,7 @@ test('should prevent editing of label map segmentations when panelSegmentation.d
   await checkForScreenshot(page, page, screenShotPaths.labelMapSegLocking.globalLockedSegPreEdit);
 
   // Attempt to erase the segmentations.
+<<<<<<< HEAD
   await rightPanelPageObject.labelMapSegmentationPanel.tools.eraser.click();
 
   // Use the largest eraser radius to help ensure the entire image is erased.
@@ -55,6 +75,26 @@ test('should prevent editing of label map segmentations when panelSegmentation.d
     end: { x: 1.0, y: 0.5 },
   });
   await viewportPageObject.getById('default').normalizedDragAt({
+=======
+  await page.getByTestId('Eraser-btn').click();
+
+  // Use the largest eraser radius to help ensure the entire image is erased.
+  await page.locator(`css=div[data-cy="eraser-radius"] input`).fill('1000');
+
+  // Attempt to erase the segmentations by dragging the eraser tool across the image several times.
+  await simulateNormalizedDragOnElement({
+    locator: viewportLocator({ page, viewportId: 'default' }),
+    start: { x: 0.01, y: 0.25 },
+    end: { x: 1.0, y: 0.25 },
+  });
+  await simulateNormalizedDragOnElement({
+    locator: viewportLocator({ page, viewportId: 'default' }),
+    start: { x: 0.01, y: 0.5 },
+    end: { x: 1.0, y: 0.5 },
+  });
+  await simulateNormalizedDragOnElement({
+    locator: viewportLocator({ page, viewportId: 'default' }),
+>>>>>>> v3.11.1
     start: { x: 0.01, y: 0.75 },
     end: { x: 1.0, y: 0.75 },
   });
@@ -64,10 +104,13 @@ test('should prevent editing of label map segmentations when panelSegmentation.d
 
 test('should allow editing of label map segmentations when panelSegmentation.disableEditing is false', async ({
   page,
+<<<<<<< HEAD
   DOMOverlayPageObject,
   leftPanelPageObject,
   rightPanelPageObject,
   viewportPageObject,
+=======
+>>>>>>> v3.11.1
 }) => {
   // disable editing of segmentations via the customization service
   await page.evaluate(() => {
@@ -78,6 +121,7 @@ test('should allow editing of label map segmentations when panelSegmentation.dis
       }
     );
   });
+<<<<<<< HEAD
 
   await rightPanelPageObject.labelMapSegmentationPanel.select();
 
@@ -86,6 +130,13 @@ test('should allow editing of label map segmentations when panelSegmentation.dis
   await page.waitForTimeout(5000);
 
   await DOMOverlayPageObject.viewport.segmentationHydration.yes.click();
+=======
+  await page.getByTestId('study-browser-thumbnail-no-image').dblclick();
+  // Wait for the segmentation to be loaded.
+  await page.waitForTimeout(5000);
+
+  await page.getByTestId('yes-hydrate-btn').click();
+>>>>>>> v3.11.1
   // Wait for the segmentation to hydrate.
   await page.waitForTimeout(5000);
 
@@ -95,6 +146,7 @@ test('should allow editing of label map segmentations when panelSegmentation.dis
   await checkForScreenshot(page, page, screenShotPaths.labelMapSegLocking.globalUnlockedSegPreEdit);
 
   // Attempt to erase the segmentations.
+<<<<<<< HEAD
   await rightPanelPageObject.labelMapSegmentationPanel.tools.eraser.click();
 
   // Use the largest eraser radius to help ensure the eraser passes over the entire image.
@@ -110,6 +162,26 @@ test('should allow editing of label map segmentations when panelSegmentation.dis
     end: { x: 1.0, y: 0.5 },
   });
   await viewportPageObject.getById('default').normalizedDragAt({
+=======
+  await page.getByTestId('Eraser-btn').click();
+
+  // Use the largest eraser radius to help ensure the eraser passes over the entire image.
+  await page.locator(`css=div[data-cy="eraser-radius"] input`).fill('1000');
+
+  // Attempt to erase the segmentations by dragging the eraser tool across the image several times.
+  await simulateNormalizedDragOnElement({
+    locator: viewportLocator({ page, viewportId: 'default' }),
+    start: { x: 0.01, y: 0.25 },
+    end: { x: 1.0, y: 0.25 },
+  });
+  await simulateNormalizedDragOnElement({
+    locator: viewportLocator({ page, viewportId: 'default' }),
+    start: { x: 0.01, y: 0.5 },
+    end: { x: 1.0, y: 0.5 },
+  });
+  await simulateNormalizedDragOnElement({
+    locator: viewportLocator({ page, viewportId: 'default' }),
+>>>>>>> v3.11.1
     start: { x: 0.01, y: 0.75 },
     end: { x: 1.0, y: 0.75 },
   });

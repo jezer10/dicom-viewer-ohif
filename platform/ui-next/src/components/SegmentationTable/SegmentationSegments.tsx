@@ -117,9 +117,12 @@ export const SegmentationSegments = ({ children = null }: { children?: React.Rea
             const { locked, active, label, displayText } = segmentFromSegmentation;
             const cssColor = `rgb(${color[0]},${color[1]},${color[2]})`;
 
+<<<<<<< HEAD
             // Secondary selection: segment is active, but its parent segmentation is inactive
             const isSecondarySelected = active && !isActiveSegmentation;
 
+=======
+>>>>>>> v3.11.1
             const hasStats = segmentFromSegmentation.cachedStats?.namedStats;
 
             const segmentRowRef = (element: HTMLElement) => {
@@ -143,10 +146,14 @@ export const SegmentationSegments = ({ children = null }: { children?: React.Rea
                 // details={displayText}
                 description={displayText}
                 colorHex={cssColor}
+<<<<<<< HEAD
                 // Primary selection only when part of the active segmentation
                 isSelected={active && isActiveSegmentation}
                 // Secondary selection tint when selected in an inactive segmentation
                 isSecondarySelected={isSecondarySelected}
+=======
+                isSelected={active}
+>>>>>>> v3.11.1
                 isVisible={visible}
                 isLocked={locked}
                 disableEditing={disableEditing}
@@ -165,11 +172,14 @@ export const SegmentationSegments = ({ children = null }: { children?: React.Rea
                 onSelect={() => onSegmentClick(segmentation.segmentationId, segmentIndex)}
                 onRename={() => onSegmentEdit(segmentation.segmentationId, segmentIndex)}
                 onDelete={() => onSegmentDelete(segmentation.segmentationId, segmentIndex)}
+<<<<<<< HEAD
                 onCopy={
                   onSegmentCopy
                     ? () => onSegmentCopy(segmentation.segmentationId, segmentIndex)
                     : undefined
                 }
+=======
+>>>>>>> v3.11.1
               />
             );
 
