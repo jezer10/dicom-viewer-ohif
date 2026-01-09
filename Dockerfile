@@ -1,105 +1,109 @@
 # syntax=docker/dockerfile:1.7-labs
-# This dockerfile is used to publish the `ohif/app` image on dockerhub.
-#
-# It's a good example of how to build our static application and package it
-# with a web server capable of hosting it as static content.
-#
-# docker build
-# --------------
-# If you would like to use this dockerfile to build and tag an image, make sure
-# you set the context to the project's root directory:
-# https://docs.docker.com/engine/reference/commandline/build/
-#
-#
-# SUMMARY
-# --------------
-# This dockerfile has two stages:
-#
-# 1. Building the React application for production
-# 2. Setting up our Nginx (Alpine Linux) image w/ step one's output
-#
 
+############################
+# Stage 1: Build (static)
+############################
+FROM node:20.18.1-slim AS builder
 
-# syntax=docker/dockerfile:1.7-labs
-# This dockerfile is used to publish the `ohif/app` image on dockerhub.
-#
-# It's a good example of how to build our static application and package it
-# with a web server capable of hosting it as static content.
-#
-# docker build
-# --------------
-# If you would like to use this dockerfile to build and tag an image, make sure
-# you set the context to the project's root directory:
-# https://docs.docker.com/engine/reference/commandline/build/
-#
-#
-# SUMMARY
-# --------------
-# This dockerfile is used as an input for a second stage to make things run faster.
-#
+# Dependencias nativas mínimas para builds (node-gyp, etc.)
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt-get update && apt-get install -y --no-install-recommends \
+      build-essential \
+      python3 \
+      ca-certificates \
+      git \
+    && rm -rf /var/lib/apt/lists/*
 
-
-# Stage 1: Build the application
-# docker build -t ohif/viewer:latest .
-# Copy Files
-FROM node:20.18.1-slim as builder
-
-RUN apt-get update && apt-get install -y build-essential python3
-
-
-RUN mkdir /usr/src/app
 WORKDIR /usr/src/app
-RUN npm install -g bun@1.2.23
-RUN npm install -g lerna@7.4.2
-ENV PATH=/usr/src/app/node_modules/.bin:$PATH
 
-# Do an initial install and then a final install
-COPY package.json yarn.lock preinstall.js lerna.json ./
-COPY --parents ./addOns/package.json ./addOns/*/*/package.json ./extensions/*/package.json ./modes/*/package.json ./platform/*/package.json ./
-# Run the install before copying the rest of the files
+# Versiones fijas
+RUN npm install -g bun@1.2.23 lerna@7.4.2
 
-RUN bun pm cache rm
-RUN bun install
-RUN bun add ajv@8.12.0
-# Copy the local directory
-COPY --link --exclude=yarn.lock --exclude=package.json --exclude=Dockerfile . .
-
-# Build here
-# After install it should hopefully be stable until the local directory changes
-ENV QUICK_BUILD true
-# ENV GENERATE_SOURCEMAP=false
-ARG APP_CONFIG=config/default.js
+# Variables de build
 ARG PUBLIC_URL=/
 ENV PUBLIC_URL=${PUBLIC_URL}
 
+# OHIF suele soportar APP_CONFIG; lo dejamos disponible
+ARG APP_CONFIG=config/default.js
+ENV APP_CONFIG=${APP_CONFIG}
+
+# 1) Copia solo manifests/locks primero para maximizar caché
+COPY package.json yarn.lock preinstall.js lerna.json ./
+
+# Monorepo manifests (BuildKit --parents)
+COPY --parents \
+  ./addOns/package.json \
+  ./addOns/*/*/package.json \
+  ./extensions/*/package.json \
+  ./modes/*/package.json \
+  ./platform/*/package.json \
+  ./
+
+# 2) Instala deps con caché de Bun
+#    (si tu repo usa yarn.lock, bun lo puede respetar; --frozen-lockfile exige consistencia)
+RUN --mount=type=cache,target=/root/.bun \
+    bun install --frozen-lockfile
+
+# OPCIÓN A (recomendada): Ajv debe estar en package.json (NO hacer bun add aquí)
+# Si aún no puedes modificar package.json, deja la opción B:
+
+# OPCIÓN B (temporal): forzar Ajv, pero esto puede tocar lockfile en algunos casos
+# RUN --mount=type=cache,target=/root/.bun \
+#     bun add ajv@8.12.0
+
+# 3) Copia el resto del repo (código)
+COPY --link . .
+
+# Build
+ENV QUICK_BUILD=true
 RUN bun run show:config
 RUN bun run build
 
-# Precompress files
-RUN chmod u+x .docker/compressDist.sh
-RUN ./.docker/compressDist.sh
+# Precompress (si lo necesitas)
+RUN chmod u+x .docker/compressDist.sh && ./.docker/compressDist.sh
 
-# Stage 3: Bundle the built application into a Docker container
-# which runs Nginx using Alpine Linux
-FROM nginxinc/nginx-unprivileged:1.27-alpine as final
-#RUN apk add --no-cache bash
+
+############################
+# Stage 2: Runtime (nginx)
+############################
+FROM nginxinc/nginx-unprivileged:1.27-alpine AS final
+
+# Puerto interno típico del unprivileged (proxy apunta a este)
+ARG PORT=8080
+ENV PORT=${PORT}
+
 ARG PUBLIC_URL=/
 ENV PUBLIC_URL=${PUBLIC_URL}
-ARG PORT=80
-ENV PORT=${PORT}
-RUN rm /etc/nginx/conf.d/default.conf
+
+# Si usas config propia de nginx dentro de la imagen (según tu .docker/Viewer-v3.x)
+# eliminamos default de nginx
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# Copiamos scripts/config del viewer (tu entrypoint)
 USER nginx
 COPY --chown=nginx:nginx .docker/Viewer-v3.x /usr/src
-RUN chmod 777 /usr/src/entrypoint.sh
-COPY --from=builder /usr/src/app/platform/app/dist /usr/share/nginx/html${PUBLIC_URL}
-# Copy paths that are renamed/redirected generally
-# Microscopy libraries depend on root level include, so must be copied
-COPY --from=builder /usr/src/app/platform/app/dist/dicom-microscopy-viewer /usr/share/nginx/html/dicom-microscopy-viewer
+RUN chmod 755 /usr/src/entrypoint.sh
 
-# In entrypoint.sh, app-config.js might be overwritten, so chmod it to be writeable.
-# The nginx user cannot chmod it, so change to root.
+# Copiamos el build del viewer
+COPY --from=builder --chown=nginx:nginx \
+  /usr/src/app/platform/app/dist \
+  /usr/share/nginx/html${PUBLIC_URL}
+
+# Microscopy (dependencia a nivel root)
+COPY --from=builder --chown=nginx:nginx \
+  /usr/src/app/platform/app/dist/dicom-microscopy-viewer \
+  /usr/share/nginx/html/dicom-microscopy-viewer
+
+# (Opcional pero recomendado) “Hornear” tu app-config.js dentro de la imagen
+# para NO depender de volume mounts ni permisos:
+# COPY --chown=nginx:nginx app-config.js /usr/share/nginx/html/app-config.js
+
+# Permisos mínimos (evita 777). Ajusta si tu entrypoint necesita escribir algo:
 USER root
-RUN chown -R nginx:nginx /usr/share/nginx/html && chmod -R 777 /usr/share/nginx/html
+RUN chown -R nginx:nginx /usr/share/nginx/html \
+    && chmod -R u=rwX,g=rX,o=rX /usr/share/nginx/html
 USER nginx
+
 ENTRYPOINT ["/usr/src/entrypoint.sh"]
 CMD ["nginx", "-g", "daemon off;"]
