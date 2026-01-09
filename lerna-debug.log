@@ -1,0 +1,28 @@
+0 silly argv {
+0 silly argv   _: [ 'run' ],
+0 silly argv   stream: true,
+0 silly argv   lernaVersion: '7.4.2',
+0 silly argv   '$0': 'node_modules\\lerna\\dist\\cli.js',
+0 silly argv   script: 'dev:viewer'
+0 silly argv }
+1 notice cli v7.4.2
+2 verbose packageConfigs Explicit "packages" configuration found in lerna.json. Resolving packages using the configured glob(s): ["extensions/*","platform/*","modes/*","addOns/externals/*"]
+3 verbose rootPath D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif
+4 error Error: InvalidSymbol in D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\platform\docs\package.json at 79:1
+4 error   77 |     "file-loader": "6.2.0",
+4 error   78 |     "framer-motion": "6.2.4",
+4 error > 79 | <<<<<<< HEAD
+4 error      | ^^^^^^^
+4 error   80 |     "glob": "10.5.0",
+4 error   81 | =======
+4 error   82 |     "glob": "10.4.5",
+4 error
+4 error     at parseJson (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\utils\json.js:25:15)
+4 error     at readJsonFile (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\utils\fileutils.js:22:37)
+4 error     at createNodeFromPackageJson (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\plugins\package-json-workspaces.js:26:47)
+4 error     at createNodes (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\plugins\package-json-workspaces.js:20:20)
+4 error     at buildProjectsConfigurationsFromProjectPathsAndPlugins (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\project-graph\utils\project-configuration-utils.js:68:88)
+4 error     at createProjectConfigurations (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\project-graph\utils\retrieve-workspace-files.js:131:129)
+4 error     at WorkspaceContext.<anonymous> (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\project-graph\utils\retrieve-workspace-files.js:82:39)
+4 error     at getProjectConfigurationsFromContext (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\utils\workspace-context.js:26:29)
+4 error     at _retrieveProjectConfigurations (D:\Jezer\Projects\Work\Imaging\dicom-viewer-ohif\node_modules\nx\src\project-graph\utils\retrieve-workspace-files.js:81:72)

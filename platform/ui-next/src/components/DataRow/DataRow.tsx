@@ -9,7 +9,6 @@ import {
 import { Icons } from '../../components/Icons/Icons';
 import { Tooltip, TooltipTrigger, TooltipContent } from '../../components/Tooltip/Tooltip';
 import { cn } from '../../lib/utils';
-import { useTranslation } from 'react-i18next';
 
 /**
  * DataRow is a complex UI component that displays a selectable, interactive row with hierarchical data.
@@ -19,7 +18,6 @@ import { useTranslation } from 'react-i18next';
  * @component
  * @example
  * ```tsx
- * // Basic usage without status
  * <DataRow
  *   number={1}
  *   title="My Item"
@@ -35,29 +33,6 @@ import { useTranslation } from 'react-i18next';
  *   onDelete={() => {}}
  *   onColor={() => {}}
  * />
- *
- * // With warning status using composite pattern
- * <DataRow
- *   // ... other props
- * >
- *   <DataRow.Status.Warning tooltip="This structured report is not compatible with this application" />
- * </DataRow>
- *
- * // With success status using composite pattern
- * <DataRow
- *   // ... other props
- * >
- *   <DataRow.Status.Success tooltip="Measurement completed successfully" />
- * </DataRow>
- *
- * // Multiple status indicators
- * <DataRow
- *   // ... other props
- * >
- *   <DataRow.Status.Warning tooltip="Warning message" />
- *   <DataRow.Status.Info tooltip="Additional info" />
- * </DataRow>
- *
  * ```
  */
 
@@ -80,7 +55,6 @@ import { useTranslation } from 'react-i18next';
  * @property {() => void} onRename - Callback when rename is requested
  * @property {() => void} onDelete - Callback when delete is requested
  * @property {() => void} onColor - Callback when color change is requested
- * @property {React.ReactNode} children - Optional children, including Status components
  */
 interface DataRowProps {
   number: number | null;
@@ -88,10 +62,7 @@ interface DataRowProps {
   description: string;
   details?: { primary: string[]; secondary: string[] };
   //
-  /** Primary selection: selected and in the active segmentation */
   isSelected?: boolean;
-  /** Secondary selection: selected but in an inactive segmentation */
-  isSecondarySelected?: boolean;
   onSelect?: (e) => void;
   //
   isVisible: boolean;
@@ -107,16 +78,10 @@ interface DataRowProps {
   //
   colorHex?: string;
   onColor: (e) => void;
-  onCopy?: (e) => void;
   className?: string;
-  children?: React.ReactNode;
 }
 
-<<<<<<< HEAD
-const DataRowComponent = React.forwardRef<HTMLDivElement, DataRowProps>(
-=======
 const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
->>>>>>> v3.11.1
   (
     {
       number,
@@ -130,57 +95,6 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
       onRename,
       onDelete,
       onColor,
-<<<<<<< HEAD
-      onCopy,
-      isSelected = false,
-      isSecondarySelected = false,
-      isVisible = true,
-      disableEditing = false,
-      className,
-      children,
-    },
-    ref
-  ) => {
-    const { t } = useTranslation('DataRow');
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-    const isTitleLong = title?.length > 25;
-
-    // Extract Status components from children
-    const statusComponents = React.Children.toArray(children).filter(
-      child =>
-        React.isValidElement(child) &&
-        child.type &&
-        (child.type as React.ComponentType).displayName?.startsWith('DataRow.Status')
-    );
-
-    const handleAction = (action: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      switch (action) {
-        case 'Rename':
-          onRename(e);
-          break;
-        case 'Copy':
-          onCopy?.(e);
-          break;
-        case 'Lock':
-          onToggleLocked(e);
-          break;
-        case 'Delete':
-          onDelete(e);
-          break;
-        case 'Color':
-          onColor(e);
-          break;
-      }
-    };
-
-    const decodeHTML = (html: string) => {
-      const txt = document.createElement('textarea');
-      txt.innerHTML = html;
-      return txt.value;
-    };
-
-=======
       isSelected = false,
       isVisible = true,
       disableEditing = false,
@@ -215,7 +129,6 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
       return txt.value;
     };
 
->>>>>>> v3.11.1
     const renderDetailText = (text: string, indent: number = 0) => {
       const indentation = '  '.repeat(indent);
       if (text === '') {
@@ -286,39 +199,8 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
           onClick={onSelect}
           data-cy="data-row"
         >
-<<<<<<< HEAD
-          {/* Secondary Selection Tint (below hover, always visible when secondary-selected) */}
-          {isSecondarySelected && (
-            <div className="bg-primary/20 pointer-events-none absolute inset-0"></div>
-          )}
-
-          <div className="bg-primary/20 pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"></div>
-
-          {/* Number Box */}
-          {number !== null && (
-            <div
-              className={`flex h-7 max-h-7 w-7 flex-shrink-0 items-center justify-center rounded-l border-r border-black text-base ${
-                isSelected ? 'bg-highlight text-black' : 'bg-muted text-muted-foreground'
-              } overflow-hidden`}
-            >
-              {number}
-            </div>
-          )}
-
-          {/* add some space if there is not segment index */}
-          {number === null && <div className="ml-1 h-7"></div>}
-          {colorHex && (
-            <div className="flex h-7 w-5 items-center justify-center">
-              <span
-                className="ml-2 h-2 w-2 rounded-full"
-                style={{ backgroundColor: colorHex }}
-              ></span>
-            </div>
-          )}
-
-=======
           {/* Hover Overlay */}
-          <div className="bg-primary/20 pointer-events-none absolute inset-0 opacity-0 transition-opacity group-hover:opacity-100"></div>
+          <div className="pointer-events-none absolute inset-0 bg-primary/20 opacity-0 transition-opacity group-hover:opacity-100"></div>
 
           {/* Number Box */}
           {number !== null && (
@@ -342,7 +224,6 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
             </div>
           )}
 
->>>>>>> v3.11.1
           {/* Label with Conditional Tooltip */}
           <div className="ml-2 flex-1 overflow-hidden">
             {isTitleLong ? (
@@ -383,12 +264,7 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
               className={`h-6 w-6 transition-opacity ${
                 isSelected || !isVisible ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
               }`}
-<<<<<<< HEAD
-              aria-label={isVisible ? t('Hide') : t('Show')}
-              dataCY="data-row-visibility-toggle"
-=======
               aria-label={isVisible ? 'Hide' : 'Show'}
->>>>>>> v3.11.1
               onClick={e => {
                 e.stopPropagation();
                 onToggleVisibility(e);
@@ -402,12 +278,6 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
               <Icons.Lock className="text-muted-foreground h-6 w-6" />
             )}
 
-<<<<<<< HEAD
-            {/* Status Components */}
-            {statusComponents}
-
-=======
->>>>>>> v3.11.1
             {/* Actions Dropdown Menu */}
             {disableEditing && <div className="h-6 w-6"></div>}
             {!disableEditing && (
@@ -440,37 +310,16 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
                         className="pl-2"
                         data-cy="Rename"
                       >
-<<<<<<< HEAD
-                        {t('Rename')}
-                      </span>
-                    </DropdownMenuItem>
-                    {onCopy && (
-                      <DropdownMenuItem onClick={e => handleAction('Copy', e)}>
-                        <Icons.Copy className="text-foreground" />
-                        <span
-                          className="pl-2"
-                          data-cy="Duplicate"
-                        >
-                          {t('Duplicate')}
-                        </span>
-                      </DropdownMenuItem>
-                    )}
-=======
                         Rename
                       </span>
                     </DropdownMenuItem>
->>>>>>> v3.11.1
                     <DropdownMenuItem onClick={e => handleAction('Delete', e)}>
                       <Icons.Delete className="text-foreground" />
                       <span
                         className="pl-2"
                         data-cy="Delete"
                       >
-<<<<<<< HEAD
-                        {t('Delete')}
-=======
                         Delete
->>>>>>> v3.11.1
                       </span>
                     </DropdownMenuItem>
                     {onColor && (
@@ -480,11 +329,7 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
                           className="pl-2"
                           data-cy="Change Color"
                         >
-<<<<<<< HEAD
-                          {t('Change Color')}
-=======
                           Change Color
->>>>>>> v3.11.1
                         </span>
                       </DropdownMenuItem>
                     )}
@@ -494,11 +339,7 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
                         className="pl-2"
                         data-cy="LockToggle"
                       >
-<<<<<<< HEAD
-                        {isLocked ? t('Unlock') : t('Lock')}
-=======
                         {isLocked ? 'Unlock' : 'Lock'}
->>>>>>> v3.11.1
                       </span>
                     </DropdownMenuItem>
                   </>
@@ -525,100 +366,6 @@ const DataRow = React.forwardRef<HTMLDivElement, DataRowProps>(
     );
   }
 );
-<<<<<<< HEAD
-
-DataRowComponent.displayName = 'DataRow';
-
-interface StatusProps {
-  children: React.ReactNode;
-}
-
-interface StatusIndicatorProps {
-  tooltip?: string;
-  icon: React.ReactNode;
-  defaultTooltip: string;
-}
-
-const StatusIndicator: React.FC<StatusIndicatorProps> = ({ tooltip, icon, defaultTooltip }) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <div className="flex h-6 w-6 items-center justify-center">{icon}</div>
-    </TooltipTrigger>
-    <TooltipContent side="bottom">
-      <div>{tooltip || defaultTooltip}</div>
-    </TooltipContent>
-  </Tooltip>
-);
-
-const Status: React.FC<StatusProps> & {
-  Warning: React.FC<{ tooltip?: string }>;
-  Success: React.FC<{ tooltip?: string }>;
-  Error: React.FC<{ tooltip?: string }>;
-  Info: React.FC<{ tooltip?: string }>;
-} = ({ children }) => {
-  return <>{children}</>;
-};
-=======
->>>>>>> v3.11.1
-
-const StatusWarning: React.FC<{ tooltip?: string }> = ({ tooltip }) => (
-  <StatusIndicator
-    tooltip={tooltip}
-    icon={
-      <Icons.ByName
-        name="status-alert"
-        className="h-4 w-4 text-yellow-500"
-      />
-    }
-    defaultTooltip="Warning"
-  />
-);
-
-const StatusSuccess: React.FC<{ tooltip?: string }> = ({ tooltip }) => (
-  <StatusIndicator
-    tooltip={tooltip}
-    icon={<Icons.Checked className="h-4 w-4 text-green-500" />}
-    defaultTooltip="Success"
-  />
-);
-
-const StatusError: React.FC<{ tooltip?: string }> = ({ tooltip }) => (
-  <StatusIndicator
-    tooltip={tooltip}
-    icon={
-      <Icons.ByName
-        name="status-error"
-        className="h-4 w-4 text-red-500"
-      />
-    }
-    defaultTooltip="Error"
-  />
-);
-
-const StatusInfo: React.FC<{ tooltip?: string }> = ({ tooltip }) => (
-  <StatusIndicator
-    tooltip={tooltip}
-    icon={<Icons.Info className="h-4 w-4 text-blue-500" />}
-    defaultTooltip="Info"
-  />
-);
-
-Status.displayName = 'DataRow.Status';
-StatusWarning.displayName = 'DataRow.Status.Warning';
-StatusSuccess.displayName = 'DataRow.Status.Success';
-StatusError.displayName = 'DataRow.Status.Error';
-StatusInfo.displayName = 'DataRow.Status.Info';
-
-Status.Warning = StatusWarning;
-Status.Success = StatusSuccess;
-Status.Error = StatusError;
-Status.Info = StatusInfo;
-
-const DataRow = DataRowComponent as typeof DataRowComponent & {
-  Status: typeof Status;
-};
-
-DataRow.Status = Status;
 
 export default DataRow;
 export { DataRow };
