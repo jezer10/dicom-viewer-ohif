@@ -578,6 +578,7 @@ export default class ToolbarService extends PubSubService {
     const buttonTypes = this._getButtonUITypes();
 
     const buttonType = buttonTypes[uiType];
+    console.log({ uiType, buttonTypes });
 
     if (!btn.component) {
       btn.component = buttonType.defaultComponent;

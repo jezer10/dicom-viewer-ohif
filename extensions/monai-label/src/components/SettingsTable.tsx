@@ -16,6 +16,7 @@ import React, { Component } from 'react';
 import './SettingsTable.css';
 import { Icons } from '@ohif/ui-next';
 import { CookieUtils } from '../utils/GenericUtils';
+
 export default class SettingsTable extends Component {
   onInfo: any;
 
@@ -43,6 +44,7 @@ export default class SettingsTable extends Component {
     };
   }
 
+
   onBlurSeverURL = (evt) => {
     const url = evt.target.value;
     this.setState({ url: url });
@@ -56,7 +58,6 @@ export default class SettingsTable extends Component {
     CookieUtils.setCookie('MONAILABEL_SERVER_URL', url);
     console.log('Connecting Server', url);
     this.onInfo(url);
-    console.log('Settings onConnect', url);
   };
 
   render() {
@@ -80,8 +81,7 @@ export default class SettingsTable extends Component {
             <td>&nbsp;</td>
             <td>
               <button className="actionButton" onClick={this.onConnect}>
-                <Icons.ToolReset className="w-[12px] h-[12px]" />
-                {/* <Icon name="tool-reset" width="12px" height="12px" /> */}
+                <Icons.ByName name="tool-reset" width="12px" height="12px" />
               </button>
             </td>
           </tr>

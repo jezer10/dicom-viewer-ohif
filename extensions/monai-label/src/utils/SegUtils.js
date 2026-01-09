@@ -16,7 +16,6 @@ function currentSegmentsInfo(segmentationService) {
   const indices = new Set();
 
   const segmentations = segmentationService.getSegmentations();
-  console.log('hello its me');
   if (segmentations && Object.keys(segmentations).length > 0) {
     const segmentation = segmentations['0'];
     const { segments } = segmentation.config;

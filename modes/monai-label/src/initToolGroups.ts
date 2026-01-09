@@ -10,96 +10,40 @@ const colorsByOrientation = {
   coronal: 'rgb(0, 200, 0)',
 };
 
-function createTools(utilityModule) {
+function createTools({ utilityModule, commandsManager }) {
   const { toolNames, Enums } = utilityModule.exports;
-  return {
+
+  const tools = {
     active: [
       { toolName: toolNames.WindowLevel, bindings: [{ mouseButton: Enums.MouseBindings.Primary }] },
       { toolName: toolNames.Pan, bindings: [{ mouseButton: Enums.MouseBindings.Auxiliary }] },
-      { toolName: toolNames.Zoom, bindings: [{ mouseButton: Enums.MouseBindings.Secondary }] },
-      { toolName: toolNames.StackScroll, bindings: [{ mouseButton: Enums.MouseBindings.Wheel }] },
+      {
+        toolName: toolNames.Zoom,
+        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
+      },
+      {
+        toolName: toolNames.StackScroll,
+        bindings: [{ mouseButton: Enums.MouseBindings.Wheel }, { numTouchPoints: 3 }],
+      },
     ],
     passive: [
-      {
-        toolName: 'CircularBrush',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'FILL_INSIDE_CIRCLE',
-        },
-      },
-      {
-        toolName: 'CircularEraser',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'ERASE_INSIDE_CIRCLE',
-        },
-      },
-      {
-        toolName: 'SphereBrush',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'FILL_INSIDE_SPHERE',
-        },
-      },
-      {
-        toolName: 'SphereEraser',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'ERASE_INSIDE_SPHERE',
-        },
-      },
-      {
-        toolName: 'ThresholdCircularBrush',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'THRESHOLD_INSIDE_CIRCLE',
-        },
-      },
-      {
-        toolName: 'ThresholdSphereBrush',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'THRESHOLD_INSIDE_SPHERE',
-        },
-      },
-      {
-        toolName: 'ThresholdCircularBrushDynamic',
-        parentTool: 'Brush',
-        configuration: {
-          activeStrategy: 'THRESHOLD_INSIDE_CIRCLE',
-          // preview: {
-          //   enabled: true,
-          // },
-          strategySpecificConfiguration: {
-            // to use the use the center segment index to determine
-            // if inside -> same segment, if outside -> eraser
-            // useCenterSegmentIndex: true,
-            THRESHOLD: {
-              isDynamic: true,
-              dynamicRadius: 3,
-            },
-          },
-        },
-      },
-      { toolName: toolNames.CircleScissors },
-      { toolName: toolNames.RectangleScissors },
-      { toolName: toolNames.SphereScissors },
       { toolName: toolNames.StackScroll },
       { toolName: toolNames.Magnify },
       { toolName: toolNames.WindowLevelRegion },
-
       { toolName: toolNames.UltrasoundDirectional },
       { toolName: 'ProbeMONAILabel' }
     ],
     disabled: [{ toolName: toolNames.ReferenceLines }, { toolName: toolNames.AdvancedMagnify }],
   };
+
+  return tools;
 }
 
 function initDefaultToolGroup(extensionManager, toolGroupService, commandsManager, toolGroupId) {
   const utilityModule = extensionManager.getModuleEntry(
     '@ohif/extension-cornerstone.utilityModule.tools'
   );
-  const tools = createTools(utilityModule);
+  const tools = createTools({ commandsManager, utilityModule });
   toolGroupService.createToolGroupAndAddTools(toolGroupId, tools);
 }
 
@@ -109,7 +53,7 @@ function initMPRToolGroup(extensionManager, toolGroupService, commandsManager) {
   );
   const servicesManager = extensionManager._servicesManager;
   const { cornerstoneViewportService } = servicesManager.services;
-  const tools = createTools(utilityModule);
+  const tools = createTools({ commandsManager, utilityModule });
   tools.disabled.push(
     {
       toolName: utilityModule.exports.toolNames.Crosshairs,
@@ -161,7 +105,7 @@ function initVolume3DToolGroup(extensionManager, toolGroupService) {
       },
       {
         toolName: toolNames.Zoom,
-        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }],
+        bindings: [{ mouseButton: Enums.MouseBindings.Secondary }, { numTouchPoints: 2 }],
       },
       {
         toolName: toolNames.Pan,

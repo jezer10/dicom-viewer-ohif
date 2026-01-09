@@ -238,7 +238,6 @@ export default class MonaiLabelPanel extends Component {
     };
 
     console.log(info);
-
     this.setState({ info: info });
     this.setState({ isDataReady: true }); // Mark as ready
     this.setState({ options: {} });
@@ -287,7 +286,6 @@ export default class MonaiLabelPanel extends Component {
     const currentSegs = currentSegmentsInfo(
       this.props.servicesManager.services.segmentationService
     );
-    console.log('hola comoe stas');
     const modelToSegMapping = {};
     modelToSegMapping[0] = 0;
 

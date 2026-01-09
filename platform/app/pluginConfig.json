@@ -58,16 +58,20 @@
       "version": "3.0.0"
     },
     {
-      "packageName": "@ohif/extension-monai-label",
-      "version": "3.0.0"
-    },
-    {
       "packageName": "@ohif/extension-cornerstone-dicom-rt",
       "default": false,
       "version": "3.0.0"
     },
     {
       "packageName": "@ohif/extension-ultrasound-pleura-bline",
+      "version": "3.0.0"
+    },
+    {
+      "packageName": "@ohif-test/extension-clock",
+      "version": "3.2.0"
+    },
+    {
+      "packageName": "@ohif/extension-monai-label",
       "version": "3.0.0"
     }
   ],
@@ -96,16 +100,20 @@
       "version": "3.0.0"
     },
     {
-      "packageName": "@ohif/mode-monai-label",
-      "version": "3.0.0"
-    },
-    {
       "packageName": "@ohif/mode-basic-dev-mode",
       "default": false,
       "version": "3.0.0"
     },
     {
       "packageName": "@ohif/mode-ultrasound-pleura-bline",
+      "version": "3.0.0"
+    },
+    {
+      "packageName": "@ohif-test/mode-clock",
+      "version": "3.2.0"
+    },
+    {
+      "packageName": "@ohif/mode-monai-label",
       "version": "3.0.0"
     }
   ],

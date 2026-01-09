@@ -318,7 +318,6 @@ export default class ClassPrompts extends BaseTab {
     const models = this.getModels();
     const display = models.length > 0 ? 'block' : 'none';
     const segInfo = this.segmentInfo();
-    console.log('renderizing');
     if (
       Object.keys(this.state.selectedOrgans).length === 0 &&
       models.length > 0
